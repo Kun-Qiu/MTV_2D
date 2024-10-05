@@ -5,8 +5,13 @@ from matplotlib import cm
 from skimage.morphology import skeletonize
 from skimage.transform import hough_line, hough_line_peaks
 
-image_location = "Synthetic_Data/SNR_2/Set_0/Rotational_Flow_Image_Set_0.png"
+
+# Load the image in grayscale
+# image_location = "Template_Matching_Test/Target/frame_2_2us.png"
+# image_location = "Synthetic_Data/SNR_1/Set_0/Gaussian_Grid_Image_Set_0.png"
+# image_location = "Synthetic_Data/SNR_1/Set_0/Rotational_Flow_Image_Set_0.png"
 # image_location = "Template_Matching_Test/Source/frame_2.png"
+image_location = "Template_Matching_Test/Source/source_avg.png"
 image = cv2.imread(image_location, cv2.IMREAD_GRAYSCALE)
 
 blur = cv2.GaussianBlur(image, (5, 5), 0).astype('uint8')
@@ -23,7 +28,6 @@ adaptive_thresh = cv2.dilate(adaptive_thresh, kernel=kernel)
 # Create a gradient mask to isolate specific regions
 grad_x = cv2.Sobel(ot, cv2.CV_64F, 1, 0, ksize=5)
 grad_y = cv2.Sobel(ot, cv2.CV_64F, 0, 1, ksize=5)
-
 grad_magnitude = np.sqrt(grad_x ** 2 + grad_y ** 2)
 gradient_mask = (grad_magnitude == 0)
 dark_mask = (ot == 0)
@@ -36,83 +40,6 @@ adaptive_thresh[mask] = 0
 
 # Apply skeletonization
 skeleton = skeletonize(adaptive_thresh).astype(np.uint8)
-
-# Calculate Sobel gradients
-grad_x_skel = cv2.Sobel(skeleton, cv2.CV_64F, 1, 0, ksize=5)
-grad_y_skel = cv2.Sobel(skeleton, cv2.CV_64F, 0, 1, ksize=5)
-grad_xy_skel = cv2.Sobel(grad_x_skel, cv2.CV_64F, 0, 1, ksize=5)
-
-"""
-Gradient across sobel_xy must be large for the existence of an
-intersection. Implemented algorithm should take into cosideration
-the possibility of multiple high gradient --> Use a window proportional
-to the half width of the cross section. --> Could co-implement with line
-matching to reduce outliers by bounding location of intersection. Or 
-utlize a gradient threshold to be consider an intersection point. 
-"""
-
-plt.figure(figsize=(8, 6))
-plt.title("Sobel x")
-plt.imshow(grad_x_skel, cmap=cm.gray)
-plt.colorbar()
-
-plt.figure(figsize=(8, 6))
-plt.title("Sobel y")
-plt.imshow(grad_y_skel, cmap=cm.gray)
-plt.colorbar()
-
-plt.figure(figsize=(8, 6))
-plt.title("Sobel xy")
-plt.imshow(grad_xy_skel, cmap=cm.gray)
-plt.colorbar()
-plt.show()
-
-# Get the absolute values of the gradients
-abs_grad_x = np.abs(grad_x_skel)
-abs_grad_y = np.abs(grad_y_skel)
-
-
-# Function to get non-overlapping maximum gradients in a 5x5 window
-def get_max_gradients(abs_grad, window_size=5, max_count=121):
-    max_locations = []
-    max_values = []
-
-    rows, cols = abs_grad.shape
-
-    # Slide the window over the image
-    for i in range(0, rows - window_size + 1, window_size):
-        for j in range(0, cols - window_size + 1, window_size):
-            window = abs_grad[i:i + window_size, j:j + window_size]
-            max_value = np.max(window)
-            max_index = np.unravel_index(np.argmax(window), window.shape)
-            max_locations.append((i + max_index[0], j + max_index[1]))  # Store the location of max value
-            max_values.append(max_value)
-
-    # Sort by max values and get the top max_count
-    sorted_indices = np.argsort(max_values)[-max_count:]
-    return np.array(max_locations)[sorted_indices]
-
-
-# Get the locations of the largest gradients
-max_grad_x_locations = get_max_gradients(abs_grad_x)
-max_grad_y_locations = get_max_gradients(abs_grad_y)
-
-# Create a copy of the skeleton for drawing circles
-skeleton_with_circles = cv2.cvtColor(skeleton * 255, cv2.COLOR_GRAY2BGR)
-
-# Draw circles on the locations of largest gradients
-for loc in max_grad_x_locations:
-    cv2.circle(skeleton_with_circles, (loc[1], loc[0]), 5, (255, 0, 0), 2)  # Red for x gradient
-
-for loc in max_grad_y_locations:
-    cv2.circle(skeleton_with_circles, (loc[1], loc[0]), 5, (0, 255, 0), 2)  # Green for y gradient
-
-# Plot the results
-plt.figure(figsize=(10, 10))
-plt.imshow(skeleton_with_circles)
-plt.title('Skeleton with Non-overlapping Largest Sobel Gradients')
-plt.axis('off')
-plt.show()
 
 # Show the images
 fig, axes = plt.subplots(2, 3, figsize=(20, 6))
