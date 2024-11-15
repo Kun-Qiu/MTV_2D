@@ -47,6 +47,9 @@ class OpticalFlow:
 
 # source_path = 'Data/Source/source_25.png'
 # target_path = 'Data/Target/target_25.png'
-# optical_flow_object = OpticalFlow(source_path, target_path)
-# optical_flow_object.calculate_optical_flow()
-# optical_flow_object.visualize_flow()
+source_path = "Synthetic_Data/SNR_4/Set_3/Gaussian_Grid_Image_Set_3.png"
+target_path = "Synthetic_Data/SNR_4/Set_3/Rotational_Flow_Image_Set_3.png"
+# target_path = "Synthetic_Data/SNR_4/Set_3/Translational_Flow_Image_Set_3.png"
+optical_flow_object = OpticalFlow(source_path, target_path)
+optical_flow_object.calculate_optical_flow()
+optical_flow_object.visualize_flow()

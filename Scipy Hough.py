@@ -6,12 +6,11 @@ from skimage.morphology import skeletonize
 from skimage.transform import hough_line, hough_line_peaks
 
 
-# Load the image in grayscale
-# image_location = "Template_Matching_Test/Target/frame_2_2us.png"
-# image_location = "Synthetic_Data/SNR_1/Set_0/Gaussian_Grid_Image_Set_0.png"
-# image_location = "Synthetic_Data/SNR_1/Set_0/Rotational_Flow_Image_Set_0.png"
+image_location = "Deep Learning/TIFF/bp0_m0p2_2microsec.tif_76.png"
 # image_location = "Template_Matching_Test/Source/frame_2.png"
-image_location = "Template_Matching_Test/Source/source_avg.png"
+# image_location = "Template_Matching_Test/Target/frame_2_2us.png"
+# image_location = "Synthetic_Data/SNR_1/Set_0/Rotational_Flow_Image_Set_0.png"
+# image_location = "Template_Matching_Test/Source/source_avg.png"
 image = cv2.imread(image_location, cv2.IMREAD_GRAYSCALE)
 
 blur = cv2.GaussianBlur(image, (5, 5), 0).astype('uint8')
@@ -57,7 +56,6 @@ ax[2].imshow(skeleton, cmap=cm.gray)
 ax[2].set_title('Skeleton Image')
 ax[2].set_axis_off()
 
-# Detected lines plot
 ax[3].imshow(image, cmap=cm.gray)
 ax[3].set_ylim((image.shape[0], 0))
 ax[3].set_axis_off()
@@ -74,19 +72,22 @@ ax[5].set_axis_off()
 ax[5].set_title('Sub Pixel Intersections')
 
 # Hough transform parameters
-tested_angles = np.linspace(-np.pi / 2, np.pi / 2, 360)
+tested_angles = np.linspace(-np.pi / 2, np.pi / 2, 360, endpoint=True)
 h, theta, d = hough_line(skeleton, theta=tested_angles)
 height, width = image.shape[:2]
 
 # Store line parameters (angle and distance)
 lines = []
 
+threshold = 0.5 * h.max()
+num_peaks = 11 * 2
 # Extract lines using hough_line_peaks
-for _, angle, dist in zip(*hough_line_peaks(h, theta, d)):
+for _, angle, dist in zip(*hough_line_peaks(h, theta, d, threshold=threshold,
+                                            num_peaks=num_peaks)):
     (x0, y0) = dist * np.array([np.cos(angle), np.sin(angle)])
     slope = np.tan(angle + np.pi / 2)
     lines.append((angle, dist))
-    borders = [(0, 0), (width, 0), (0, height), (width, height)]
+    # borders = [(0, 0), (width, 0), (0, height), (width, height)]
     x_left, x_right = 0, width
     y_left = slope * (x_left - x0) + y0
     y_right = slope * (x_right - x0) + y0
@@ -133,6 +134,7 @@ for i in range(len(lines)):
 
 # Plot the intersections as green dots
 intersections = np.array(intersections, dtype=np.int32).astype(np.float32)
+
 ax[4].scatter(intersections[:, 0], intersections[:, 1], color='green', s=5, label='Intersections')
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
